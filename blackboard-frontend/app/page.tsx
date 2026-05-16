@@ -19,16 +19,42 @@ export default function Home() {
   const [activeSubject, setActiveSubject] = useState("Linear Algebra");
   const [activeWeek, setActiveWeek] = useState(4);
 
-  // TASK 1 & 2: The Memory Dictionary and Active Key
-  // We use the subject and week to create a unique ID (e.g., "Physics-2")
+  // Navigation State & ID Generation
   const currentTabId = `${activeSubject}-${activeWeek}`;
+
+  // Phase 2: Local Storage Initialization
   const [chatHistories, setChatHistories] = useState<Record<string, Message[]>>(
     {},
   );
+  const [isMounted, setIsMounted] = useState(false);
 
-  // TASK 3: Derived State
-  // Grab only the messages for the currently active tab (or an empty array if new)
-  const currentMessages = chatHistories[currentTabId] || [];
+  // LOAD from Local Storage on initial page load
+  useEffect(() => {
+    const savedData = localStorage.getItem("blackboard_ai_memory");
+    if (savedData) {
+      try {
+        setChatHistories(JSON.parse(savedData));
+      } catch (e) {
+        console.error("Failed to parse memory", e);
+      }
+    }
+    setIsMounted(true); // Tell the app it's safe to start saving
+  }, []);
+
+  // SAVE to Local Storage whenever chatHistories changes
+  useEffect(() => {
+    // We only save if the app is fully mounted so we don't accidentally overwrite
+    // the saved data with an empty object during initial render!
+    if (isMounted) {
+      localStorage.setItem(
+        "blackboard_ai_memory",
+        JSON.stringify(chatHistories),
+      );
+    }
+  }, [chatHistories, isMounted]);
+
+  // Derived State (Only load messages if mounted to avoid SSR flash)
+  const currentMessages = isMounted ? chatHistories[currentTabId] || [] : [];
 
   // Chat UI State
   const [input, setInput] = useState("");
